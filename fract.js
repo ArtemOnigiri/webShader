@@ -5,9 +5,12 @@ const gl = cnv.getContext('webgl2');
 
 const cnv2d = document.getElementById('cnv2d');
 cnv2d.width = 200;
-cnv2d.height = 100;
+cnv2d.height = 200;
 const ctx = cnv2d.getContext('2d');
 ctx.font = '32px sans-serif';
+ctx.fillStyle = '#fff';
+ctx.strokeStyle = '#000';
+ctx.lineWidth = 4;
 
 const vertexShaderCode =
 	`#version 300 es
@@ -25,6 +28,7 @@ const fragmentShaderCode =
 	precision mediump float;
 	uniform float u_time;
 	uniform float u_aspect;
+	uniform vec2 u_mouse;
 	in vec2 v_texcoord;
 	out vec4 outColor;
 
@@ -42,11 +46,24 @@ const fragmentShaderCode =
 		}
 	}
 
+	vec2 cpow2(vec2 c, vec2 e)
+    {
+    	if (abs(c.x) < 1e-5 && abs(c.y) < 1e-5) {
+			return vec2(0,0);
+		}
+        float r = length(c);
+        float theta = atan(c.y, c.x);
+        float f1x = pow(r, e.x) * exp(-e.y * theta);
+        float f2x = cos(e.y * log(r) + e.x * theta);
+        float f2y = sin(e.y * log(r) + e.x * theta);
+        return vec2(f1x * f2x, f1x * f2y);
+
+    }
+
 	void main()
 	{
 		vec2 uv = v_texcoord * 2.0 - 1.0;
 		uv.x *= u_aspect;
-		float n = sin(u_time * 0.001) * 2.0 - 3.0;
 		float zoo = 2.0;
 		vec2 c = vec2(.0,.0) + uv*zoo;
 		vec2 z  = vec2(0.0);
@@ -55,14 +72,14 @@ const fragmentShaderCode =
 		for( int i=0; i<256; i++ )
 		{
 			if( m2>1024.0 ) break;
-			vec2 chain = n * cpow(z, n - 1.0);
+			vec2 chain = u_mouse.x * cpow2(z, u_mouse + vec2(-1.0, 0.0));
 			dz = mat2(chain,-chain.y,chain.x) * dz + vec2(1,0);
-			z = cpow(z, n) + c;
+			z = cpow2(z, u_mouse) + c;
 			m2 = dot(z, z);
 		}
 		float d = 0.5*sqrt(m2/dot(dz,dz))*log(m2);
-		d = pow(d, 0.25) * 32.0;
-		vec3 col = 0.5 + 0.5*cos( 3.0 + d*0.15 + vec3(0.0,0.6,1.0));
+		d = pow(d, 0.125) * 32.0;
+		vec3 col = 0.5 + 0.5 * cos(3.0 + d * 0.15 + vec3(1.0, 0.6, 0.0));
 		// vec3 col = vec3( d );
 		outColor = vec4( col, 1.0 );
 	}
@@ -90,6 +107,10 @@ let time = 0;
 let currentTime = Date.now();
 let interval;
 let timeLocation;
+let mouseLocation;
+let mx = 0;
+let my = 0;
+document.addEventListener('mousemove', mouseMove);
 initGL();
 
 function initGL() {
@@ -108,8 +129,9 @@ function initGL() {
 	gl.linkProgram(program);
 	const positionAttributeLocation = gl.getAttribLocation(program, 'a_position');
 	const texcoordAttributeLocation = gl.getAttribLocation(program, "a_texcoord");
-	timeLocation = gl.getUniformLocation(program, 'u_time');
 	const aspectLocation = gl.getUniformLocation(program, 'u_aspect');
+	timeLocation = gl.getUniformLocation(program, 'u_time');
+	mouseLocation = gl.getUniformLocation(program, 'u_mouse');
 	gl.useProgram(program);
 
 	const positionBuffer = gl.createBuffer();
@@ -135,8 +157,25 @@ function update() {
 	let deltaTime = currentTimeNew - currentTime;
 	time += deltaTime;
 	currentTime = currentTimeNew;
-	gl.uniform1f(timeLocation, time);
+	let mxs = mx * 3;
+	let mys = my * 3;
+	gl.uniform1f(timeLocation, time * 0.001);
+	gl.uniform2f(mouseLocation, mxs, mys);
 	gl.drawArrays(gl.TRIANGLES, 0, 6);
-	ctx.clearRect(0, 0, 200, 100);
+	ctx.clearRect(0, 0, 200, 200);
+	ctx.strokeText(~~(1000 / deltaTime), 10, 50);
 	ctx.fillText(~~(1000 / deltaTime), 10, 50);
+	let x = ~~mxs + (~~(mxs * 100)) / 100;
+	let y = ~~mys + (~~(mys * 100)) / 100;
+	x = x + '';
+	if(x.length > 4) x = x.substring(0, 4);
+	y = y + '';
+	if(y.length > 4) y = y.substring(0, 4);
+	ctx.strokeText(x + ' ' + y, 10, 100);
+	ctx.fillText(x + ' ' + y, 10, 100);
+}
+
+function mouseMove(e) {
+	mx = e.clientX / width * 2 - 1;
+	my = e.clientY / height * 2 - 1;
 }
