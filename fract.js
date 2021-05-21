@@ -32,20 +32,6 @@ const fragmentShaderCode =
 	in vec2 v_texcoord;
 	out vec4 outColor;
 
-	vec2 cpow(vec2 c, float exponent)
-	{
-		if (abs(c.x) < 1e-5 && abs(c.y) < 1e-5) {
-			return vec2(0,0);
-		}
-		else {
-			float cAbs = length(c);
-			vec2  cLog = vec2(log(cAbs), atan(c.y,c.x));
-			vec2  cMul = exponent*cLog;
-			float expReal = exp(cMul.x);
-			return vec2(expReal*cos(cMul.y), expReal*sin(cMul.y));
-		}
-	}
-
 	vec2 cpow2(vec2 c, vec2 e)
     {
     	if (abs(c.x) < 1e-5 && abs(c.y) < 1e-5) {
@@ -65,23 +51,22 @@ const fragmentShaderCode =
 		vec2 uv = v_texcoord * 2.0 - 1.0;
 		uv.x *= u_aspect;
 		float zoo = 2.0;
-		vec2 c = vec2(.0,.0) + uv*zoo;
+		vec2 c = vec2(.0,.0) + uv * zoo;
 		vec2 z  = vec2(0.0);
 		float m2 = 0.0;
 		vec2 dz = vec2(0.0);
-		for( int i=0; i<256; i++ )
+		for(int i = 0; i < 256; i++)
 		{
-			if( m2>1024.0 ) break;
+			if( m2 > 1024.0 ) break;
 			vec2 chain = u_mouse.x * cpow2(z, u_mouse + vec2(-1.0, 0.0));
-			dz = mat2(chain,-chain.y,chain.x) * dz + vec2(1,0);
+			dz = mat2(chain, -chain.y, chain.x) * dz + vec2(1,0);
 			z = cpow2(z, u_mouse) + c;
 			m2 = dot(z, z);
 		}
-		float d = 0.5*sqrt(m2/dot(dz,dz))*log(m2);
+		float d = 0.5 * sqrt(m2 / dot(dz, dz)) * log(m2);
 		d = pow(d, 0.125) * 32.0;
 		vec3 col = 0.5 + 0.5 * cos(3.0 + d * 0.15 + vec3(1.0, 0.6, 0.0));
-		// vec3 col = vec3( d );
-		outColor = vec4( col, 1.0 );
+		outColor = vec4(col, 1.0);
 	}
 `;
 
@@ -157,16 +142,16 @@ function update() {
 	let deltaTime = currentTimeNew - currentTime;
 	time += deltaTime;
 	currentTime = currentTimeNew;
-	let mxs = mx * 3;
-	let mys = my * 3;
+	let mxs = mx * 5;
+	let mys = my * 5;
 	gl.uniform1f(timeLocation, time * 0.001);
 	gl.uniform2f(mouseLocation, mxs, mys);
 	gl.drawArrays(gl.TRIANGLES, 0, 6);
 	ctx.clearRect(0, 0, 200, 200);
 	ctx.strokeText(~~(1000 / deltaTime), 10, 50);
 	ctx.fillText(~~(1000 / deltaTime), 10, 50);
-	let x = ~~mxs + (~~(mxs * 100)) / 100;
-	let y = ~~mys + (~~(mys * 100)) / 100;
+	let x = ~~mxs + (~~((mxs % 1) * 100)) / 100;
+	let y = ~~mys + (~~((mys % 1) * 100)) / 100;
 	x = x + '';
 	if(x.length > 4) x = x.substring(0, 4);
 	y = y + '';
