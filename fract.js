@@ -134,7 +134,7 @@ function initGL() {
 	let aspect = cnv.clientWidth / cnv.clientHeight;
 	gl.uniform1f(aspectLocation, aspect);
 
-	interval = setInterval(update, 17);
+	window.requestAnimationFrame(update);
 }
 
 function update() {
@@ -158,6 +158,7 @@ function update() {
 	if(y.length > 4) y = y.substring(0, 4);
 	ctx.strokeText(x + ' ' + y, 10, 100);
 	ctx.fillText(x + ' ' + y, 10, 100);
+	window.requestAnimationFrame(update);
 }
 
 function mouseMove(e) {
